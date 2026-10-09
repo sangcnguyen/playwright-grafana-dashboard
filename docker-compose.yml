@@ -1,0 +1,43 @@
+services:
+  grafana:
+    image: grafana/grafana:13.2
+    container_name: grafana
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-playwright}
+      POSTGRES_USER: ${POSTGRES_USER:-playwright}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-playwright}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources/postgres.yml:/etc/grafana/provisioning/datasources/postgres.yml:ro
+      - ./grafana/provisioning/dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
+    restart: no
+
+  postgres:
+    image: postgres:18
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-playwright}
+      POSTGRES_USER: ${POSTGRES_USER:-playwright}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-playwright}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: no
+
+volumes:
+  grafana-data:
+  postgres-data:
